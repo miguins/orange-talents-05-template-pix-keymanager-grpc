@@ -1,5 +1,6 @@
 package br.com.zup.lucasmiguins.shared.handlers
 
+import br.com.zup.lucasmiguins.pix.exceptions.ChavePixClienteNaoEncontradaException
 import br.com.zup.lucasmiguins.pix.exceptions.ChavePixExistenteException
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
@@ -27,6 +28,7 @@ class ErrorAroundHandlerInterceptor : MethodInterceptor<Any, Any> {
                 is ConstraintViolationException -> Status.INVALID_ARGUMENT.withCause(ex).withDescription(ex.message)
                 is ChavePixExistenteException -> Status.ALREADY_EXISTS.withCause(ex).withDescription(ex.message)
                 is IllegalStateException -> Status.NOT_FOUND.withCause(ex).withDescription(ex.message)
+                is ChavePixClienteNaoEncontradaException -> Status.NOT_FOUND.withCause(ex).withDescription(ex.message)
 
                 else -> Status.UNKNOWN.withCause(ex).withDescription("Ocorreu um erro inesperado")
             }
