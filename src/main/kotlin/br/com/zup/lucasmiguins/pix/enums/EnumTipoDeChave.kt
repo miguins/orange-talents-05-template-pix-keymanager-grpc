@@ -1,6 +1,6 @@
 package br.com.zup.lucasmiguins.pix.enums
 
-import io.micronaut.validation.validator.constraints.EmailValidator
+import org.hibernate.validator.internal.constraintvalidators.hv.EmailValidator
 import org.hibernate.validator.internal.constraintvalidators.hv.br.CPFValidator
 
 enum class EnumTipoDeChave {
@@ -8,10 +8,6 @@ enum class EnumTipoDeChave {
     CPF {
         override fun valida(chave: String?): Boolean {
             if (chave.isNullOrBlank()) {
-                return false
-            }
-
-            if (!chave.matches("[0-9]+".toRegex())) {
                 return false
             }
 
