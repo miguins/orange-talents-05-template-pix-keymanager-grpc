@@ -22,5 +22,10 @@ jpa.default.properties.hibernate.format_sql: true
 
 
 itau:
+  ispb: ${TESTE_URL:60701190}
   contas:
     url: ${ITAU_URL:`http://localhost:9091`}
+
+bcb:
+  pix:
+    url: ${BCB_URL:`http://localhost:8082`}

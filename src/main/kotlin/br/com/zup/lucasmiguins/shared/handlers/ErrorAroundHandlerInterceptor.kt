@@ -27,7 +27,7 @@ class ErrorAroundHandlerInterceptor : MethodInterceptor<Any, Any> {
             val status = when (ex) {
                 is ConstraintViolationException -> Status.INVALID_ARGUMENT.withCause(ex).withDescription(ex.message)
                 is ChavePixExistenteException -> Status.ALREADY_EXISTS.withCause(ex).withDescription(ex.message)
-                is IllegalStateException -> Status.NOT_FOUND.withCause(ex).withDescription(ex.message)
+                is IllegalStateException -> Status.INTERNAL.withCause(ex).withDescription(ex.message)
                 is ChavePixClienteNaoEncontradaException -> Status.NOT_FOUND.withCause(ex).withDescription(ex.message)
 
                 else -> Status.UNKNOWN.withCause(ex).withDescription("Ocorreu um erro inesperado")
