@@ -4,6 +4,9 @@ import br.com.zup.lucasmiguins.grpc.EnumTipoDeChave
 import br.com.zup.lucasmiguins.grpc.EnumTipoDeConta
 import br.com.zup.lucasmiguins.grpc.KeymanagerRegistraGrpcServiceGrpc
 import br.com.zup.lucasmiguins.grpc.RegistraChavePixRequest
+import br.com.zup.lucasmiguins.integration.bcb.BancoCentralClient
+import br.com.zup.lucasmiguins.integration.bcb.registra.CreatePixKeyRequest
+import br.com.zup.lucasmiguins.integration.bcb.registra.CreatePixKeyResponse
 import br.com.zup.lucasmiguins.integration.itau.ContasClientesItauClient
 import br.com.zup.lucasmiguins.integration.itau.DadosContaResponse
 import br.com.zup.lucasmiguins.integration.itau.InstituicaoResponse
@@ -29,6 +32,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
+import java.time.LocalDateTime
 import java.util.*
 import javax.inject.Inject
 
@@ -40,6 +44,9 @@ internal class RegistraChaveEndpointTest(
 
     @Inject
     lateinit var itauClient: ContasClientesItauClient
+
+    @Inject
+    lateinit var bcbClient: BancoCentralClient
 
     companion object {
         val CLIENTE_ID: UUID = UUID.randomUUID()
@@ -56,6 +63,9 @@ internal class RegistraChaveEndpointTest(
         // cenário
         `when`(itauClient.buscaContaPorTipo(clienteId = CLIENTE_ID.toString(), tipo = "CONTA_CORRENTE"))
             .thenReturn(HttpResponse.ok(dadosDaContaResponse()))
+
+        `when`(bcbClient.criarChavePix(createPixKeyRequest()))
+            .thenReturn(HttpResponse.created(createPixKeyResponse()))
 
         // ação
         val response = grpcClient.registra(
@@ -106,6 +116,9 @@ internal class RegistraChaveEndpointTest(
         `when`(itauClient.buscaContaPorTipo(clienteId = CLIENTE_ID.toString(), tipo = "CONTA_CORRENTE"))
             .thenReturn(HttpResponse.notFound())
 
+        `when`(bcbClient.criarChavePix(createPixKeyRequest()))
+            .thenReturn(HttpResponse.badRequest())
+
         val thrown = assertThrows<StatusRuntimeException> {
             grpcClient.registra(
                 RegistraChavePixRequest.newBuilder()
@@ -118,12 +131,12 @@ internal class RegistraChaveEndpointTest(
         }
 
         with(thrown) {
-            assertEquals(Status.NOT_FOUND.code, this.status.code)
+            assertEquals(Status.INTERNAL.code, this.status.code)
         }
     }
 
     @Factory
-    class Clients {
+    class ClientRegistraChaveEndpointTest {
         @Bean
         fun blockingStub(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel): KeymanagerRegistraGrpcServiceGrpc.KeymanagerRegistraGrpcServiceBlockingStub {
             return KeymanagerRegistraGrpcServiceGrpc.newBlockingStub(channel)
@@ -135,10 +148,15 @@ internal class RegistraChaveEndpointTest(
         return Mockito.mock(ContasClientesItauClient::class.java)
     }
 
+    @MockBean(BancoCentralClient::class)
+    fun bcbClient(): BancoCentralClient? {
+        return Mockito.mock(BancoCentralClient::class.java)
+    }
+
     private fun dadosDaContaResponse(): DadosContaResponse {
         return DadosContaResponse(
             tipo = "CONTA_CORRENTE",
-            instituicao = InstituicaoResponse("UNIBANCO ITAU SA", "ITAU_UNIBANCO_ISPB"),
+            instituicao = InstituicaoResponse("UNIBANCO ITAU SA", ContaAssociada.ITAU_UNIBANCO_ISPB),
             agencia = "1218",
             numero = "291900",
             titular = TitularResponse("Rafael Ponte", "34528318091")
@@ -160,6 +178,42 @@ internal class RegistraChaveEndpointTest(
             chave = chave,
             tipoDeConta = CONTA_CORRENTE,
             contaAssociada()
+        )
+    }
+
+    private fun createPixKeyRequest(): CreatePixKeyRequest {
+        return CreatePixKeyRequest(
+            keyType = CreatePixKeyRequest.PixKeyType.EMAIL,
+            key = "ponte@email.com",
+            bankAccount = bankAccount(),
+            owner = owner()
+        )
+    }
+
+    private fun createPixKeyResponse(): CreatePixKeyResponse {
+        return CreatePixKeyResponse(
+            keyType = CreatePixKeyRequest.PixKeyType.EMAIL,
+            key = "ponte@email.com",
+            bankAccount = bankAccount(),
+            owner = owner(),
+            createdAt = LocalDateTime.now()
+        )
+    }
+
+    private fun bankAccount(): CreatePixKeyRequest.BankAccount {
+        return CreatePixKeyRequest.BankAccount(
+            participant = ContaAssociada.ITAU_UNIBANCO_ISPB,
+            branch = "1218",
+            accountNumber = "291900",
+            accountType = CreatePixKeyRequest.BankAccount.AccountType.CACC
+        )
+    }
+
+    private fun owner(): CreatePixKeyRequest.Owner {
+        return CreatePixKeyRequest.Owner(
+            type = CreatePixKeyRequest.Owner.OwnerType.NATURAL_PERSON,
+            name = "Rafael Ponte",
+            taxIdNumber = "34528318091"
         )
     }
 }

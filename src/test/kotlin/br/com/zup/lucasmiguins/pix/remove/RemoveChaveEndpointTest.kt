@@ -2,6 +2,9 @@ package br.com.zup.lucasmiguins.pix.remove
 
 import br.com.zup.lucasmiguins.grpc.KeymanagerRemoveGrpcServiceGrpc
 import br.com.zup.lucasmiguins.grpc.RemoveChavePixRequest
+import br.com.zup.lucasmiguins.integration.bcb.BancoCentralClient
+import br.com.zup.lucasmiguins.integration.bcb.remove.DeletePixKeyRequest
+import br.com.zup.lucasmiguins.integration.bcb.remove.DeletePixKeyResponse
 import br.com.zup.lucasmiguins.pix.ChavePix
 import br.com.zup.lucasmiguins.pix.ChavePixRepository
 import br.com.zup.lucasmiguins.pix.ContaAssociada
@@ -14,18 +17,26 @@ import io.micronaut.context.annotation.Bean
 import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
+import io.micronaut.http.HttpResponse
+import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
+import org.mockito.Mockito.`when`
+import java.time.LocalDateTime
 import java.util.*
+import javax.inject.Inject
 
 @MicronautTest(transactional = false)
 internal class RemoveChaveEndpointTest(
     private val chavePixRepository: ChavePixRepository,
     private val grpcClient: KeymanagerRemoveGrpcServiceGrpc.KeymanagerRemoveGrpcServiceBlockingStub
 ) {
+    @Inject
+    lateinit var bcbClient: BancoCentralClient
 
     private lateinit var chavePixExistente: ChavePix
 
@@ -34,7 +45,8 @@ internal class RemoveChaveEndpointTest(
         chavePixExistente = chavePixRepository.save(
             chavePix(
                 tipo = EnumTipoDeChave.EMAIL,
-                chave = "ponte@email.com"
+                chave = "ponte@email.com",
+                clienteId = UUID.randomUUID()
             )
         )
     }
@@ -47,6 +59,14 @@ internal class RemoveChaveEndpointTest(
     // happy path
     @Test
     internal fun `deve remover uma chave pix existente`() {
+
+        // cenario
+        `when`(bcbClient.deletarChavePix("ponte@email.com", DeletePixKeyRequest("ponte@email.com")))
+            .thenReturn(HttpResponse.ok(DeletePixKeyResponse(key = "ponte@email.com",
+                        participant = ContaAssociada.ITAU_UNIBANCO_ISPB,
+                        deletedAt = LocalDateTime.now())
+                )
+            )
 
         // acao
         val response = grpcClient.remove(
@@ -127,11 +147,16 @@ internal class RemoveChaveEndpointTest(
     }
 
     @Factory
-    class Clients {
+    class ClientRemoveChaveEndpointTest {
         @Bean
         fun blockingStub(@GrpcChannel(GrpcServerChannel.NAME) channel: ManagedChannel): KeymanagerRemoveGrpcServiceGrpc.KeymanagerRemoveGrpcServiceBlockingStub {
             return KeymanagerRemoveGrpcServiceGrpc.newBlockingStub(channel)
         }
+    }
+
+    @MockBean(BancoCentralClient::class)
+    fun bcbClient(): BancoCentralClient? {
+        return Mockito.mock(BancoCentralClient::class.java)
     }
 
     private fun chavePix(
