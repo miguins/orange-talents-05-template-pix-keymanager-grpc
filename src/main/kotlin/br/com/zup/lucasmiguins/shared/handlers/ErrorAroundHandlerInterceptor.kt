@@ -7,6 +7,7 @@ import io.grpc.stub.StreamObserver
 import io.micronaut.aop.InterceptorBean
 import io.micronaut.aop.MethodInterceptor
 import io.micronaut.aop.MethodInvocationContext
+import java.lang.IllegalArgumentException
 import javax.inject.Singleton
 import javax.validation.ConstraintViolationException
 
@@ -26,6 +27,7 @@ class ErrorAroundHandlerInterceptor : MethodInterceptor<Any, Any> {
 
             val status = when (ex) {
                 is ConstraintViolationException -> Status.INVALID_ARGUMENT.withCause(ex).withDescription(ex.message)
+                is IllegalArgumentException -> Status.INVALID_ARGUMENT.withCause(ex).withDescription(ex.message)
                 is ChavePixExistenteException -> Status.ALREADY_EXISTS.withCause(ex).withDescription(ex.message)
                 is IllegalStateException -> Status.INTERNAL.withCause(ex).withDescription(ex.message)
                 is ChavePixClienteNaoEncontradaException -> Status.NOT_FOUND.withCause(ex).withDescription(ex.message)
