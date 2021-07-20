@@ -52,4 +52,6 @@ class ChavePix(
     override fun toString(): String {
         return "ChavePix(clienteId=$clienteId, tipo=$tipoDeChave, chave='$chave', conta=$tipoDeConta, id=$id, criadaEm=$criadaEm)"
     }
+
+    fun pertenceAo(clienteId: UUID) = this.clienteId == clienteId
 }
