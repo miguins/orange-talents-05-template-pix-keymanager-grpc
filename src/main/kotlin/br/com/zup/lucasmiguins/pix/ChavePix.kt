@@ -10,43 +10,40 @@ import javax.validation.constraints.NotBlank
 import javax.validation.constraints.NotNull
 
 @Entity
-@Table(
-    uniqueConstraints = [UniqueConstraint(
-        name = "uk_chave_pix",
-        columnNames = ["chave"]
-    )]
-)
+@Table(name = "chave_pix")
 class ChavePix(
 
     @field:NotNull
-    @Column(nullable = false)
+    @Column( name = "cliente_id", nullable = false)
     val clienteId: UUID,
 
     @field:NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "tipo_chave", nullable = false)
     val tipoDeChave: EnumTipoDeChave,
 
     @field:NotBlank
-    @Column(nullable = false)
+    @Column(name= "chave", nullable = false)
     var chave: String,
 
     @field:NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name="tipo_conta", nullable = false)
     val tipoDeConta: EnumTipoDeConta,
 
 
     @field:Valid
-    @Embedded
+    @ManyToOne(fetch = FetchType.EAGER, cascade = [CascadeType.PERSIST])
+    @JoinColumn(name = "id_conta_associada", nullable = false)
     val conta: ContaAssociada
 ) {
 
     @Id
     @GeneratedValue
+    @Column(name = "id_chave")
     val id: UUID? = null
 
-    @Column(nullable = false)
+    @Column(name = "data_criacao", nullable = false)
     val criadaEm: LocalDateTime = LocalDateTime.now()
 
     override fun toString(): String {

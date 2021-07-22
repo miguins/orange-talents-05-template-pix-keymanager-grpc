@@ -1,0 +1,1 @@
+ALTER TABLE keymanager.chave_pix ADD COLUMN data_criacao TIMESTAMP
