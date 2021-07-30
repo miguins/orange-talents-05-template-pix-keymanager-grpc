@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.allopen") version "1.4.32"
     id("org.jetbrains.kotlin.plugin.jpa") version "1.4.32"
     id("com.google.protobuf") version "0.8.15"
+    id "org.flywaydb.flyway" version "7.12.0"
 }
 
 version = "0.1"
@@ -93,4 +94,14 @@ protobuf {
     generateProtoTasks {
         all()*.plugins { grpc {} }
     }
+}
+
+flyway {
+    driver = 'org.postgresql.Driver'
+    url = 'jdbc:postgresql://localhost:5432/pix-keymanager-grpc'
+    user = 'postgres'
+    password = '123'
+    connectRetries = 10
+    schemas = ['keymanager']
+    table = 'flyway_schema_history'
 }
